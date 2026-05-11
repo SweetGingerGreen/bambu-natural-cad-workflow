@@ -1,0 +1,29 @@
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+.claude/
+result.json
+
+# CAD / slicer local caches
+*.log
+*.bak
+*.tmp
+
+# 生成产物不入库（按需调整）
+output/preview/*
+output/step/*.step
+output/stl/*.stl
+output/3mf/*.3mf
+!output/preview/.gitkeep
+!output/step/.gitkeep
+!output/stl/.gitkeep
+!output/3mf/.gitkeep
+
+# 输入素材（图片/AI 生成的 GLB）也不入库
+input/*
+!input/.gitkeep
