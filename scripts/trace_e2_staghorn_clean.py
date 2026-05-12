@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import cv2
@@ -12,12 +13,15 @@ from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
 
-ROOT = Path(__file__).resolve().parents[1]
-IMAGE = (
-    Path.home()
-    / ".codex/generated_images/019df22e-f617-79c1-a6c4-9f03497c3243/"
-    / "ig_0377ec68be55f49e0169fd92d32fe48190b5e043a1310ed3e1.png"
-)
+def find_repo_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "parametric").is_dir() and (parent / "output").is_dir():
+            return parent
+    return Path(__file__).resolve().parents[1]
+
+
+ROOT = find_repo_root()
+DEFAULT_IMAGE = ROOT / "input" / "staghorn_e2_reference.png"
 OUT_STL = ROOT / "output/stl/staghorn_e2_clean_v3.stl"
 OUT_MASK = ROOT / "output/preview/staghorn_e2_clean_v3_mask.png"
 
@@ -30,8 +34,8 @@ def largest_component(mask: np.ndarray) -> np.ndarray:
     return (labels == idx).astype(np.uint8) * 255
 
 
-def extract_material_mask() -> tuple[np.ndarray, tuple[int, int, int, int], tuple[float, float]]:
-    im = Image.open(IMAGE).convert("RGB")
+def extract_material_mask(image_path: Path) -> tuple[np.ndarray, tuple[int, int, int, int], tuple[float, float]]:
+    im = Image.open(image_path).convert("RGB")
     crop = im.crop((520, 120, 820, 575))
     rgb = np.array(crop)
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
@@ -157,11 +161,30 @@ def save_preview(poly: Polygon) -> None:
     img.save(OUT_MASK)
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Trace an E2-style staghorn board concept image into an STL.")
+    parser.add_argument(
+        "--image",
+        type=Path,
+        default=DEFAULT_IMAGE,
+        help="Path to the concept/reference image. Defaults to input/staghorn_e2_reference.png.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
+    image_path = args.image.expanduser().resolve()
+    if not image_path.exists():
+        raise SystemExit(
+            f"Reference image not found: {image_path}\n"
+            "Pass one with --image, or place it at input/staghorn_e2_reference.png."
+        )
+
     OUT_STL.parent.mkdir(parents=True, exist_ok=True)
     OUT_MASK.parent.mkdir(parents=True, exist_ok=True)
 
-    mask, bbox, disk_center_px = extract_material_mask()
+    mask, bbox, disk_center_px = extract_material_mask(image_path)
     poly, scale, origin_px = mask_to_polygon(mask, bbox)
     poly = clean_center_disk(poly, scale, origin_px, disk_center_px)
     if poly.geom_type != "Polygon":

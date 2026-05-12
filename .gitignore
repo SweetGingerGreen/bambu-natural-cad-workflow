@@ -7,12 +7,14 @@ __pycache__/
 *.pyc
 .DS_Store
 .claude/
+.codex/
 result.json
 
 # CAD / slicer local caches
 *.log
 *.bak
 *.tmp
+*.blend1
 
 # 生成产物不入库（按需调整）
 output/preview/*
